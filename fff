@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>하엘의 영단어 공부노트</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 터치 및 스크롤 최적화 */
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Noto Sans KR', sans-serif; 
+            background-color: #f8fbff; 
+            color: #333; 
+            /* 화면이 길어지면 스크롤이 가능하게 설정 */
+            overflow-y: auto; 
+            min-height: 100vh;
+        }
+        
+        .container { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            padding-bottom: 50px; /* 하단 버튼이 바닥에 붙지 않게 여백 추가 */
+        }
+
+        .screen { 
+            display: none; 
+            padding: 20px; 
+            flex-direction: column; 
+            width: 100%; 
+        }
+
+        .active { display: flex; }
+
+        /* 메인 상단 */
+        .main-header { 
+            text-align: center; 
+            padding: 50px 20px; 
+            background: #ffffff; 
+            border-radius: 0 0 40px 40px; 
+            box-shadow: 0 10px 25px rgba(72, 52, 212, 0.05);
+            margin-bottom: 25px;
+        }
+        .main-icon { font-size: 55px; margin-bottom: 10px; display: inline-block; }
+        .main-title { font-size: 26px; font-weight: 900; color: #4834d4; margin: 0; }
+
+        /* 안드로이드 최적화 버튼 */
+        .btn { 
+            border: none; border-radius: 18px; padding: 18px; font-size: 18px; 
+            font-weight: bold; cursor: pointer; transition: 0.2s; 
+            margin-bottom: 12px; width: 100%; display: block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .btn-choice { background: #6c5ce7; color: white; }
+        .btn-typing { background: #0984e3; color: white; }
+        .btn-study { background: white; color: #2d3436; border: 2px solid #edf2f7; }
+        .btn:active { transform: scale(0.97); opacity: 0.9; }
+
+        /* 진행 바 */
+        .progress-container { background: #eee; border-radius: 10px; height: 8px; margin-bottom: 15px; }
+        .progress-fill { background: #4834d4; height: 100%; width: 0%; transition: 0.3s; }
+
+        /* 퀴즈 카드 */
+        .quiz-card { 
+            background: white; 
+            border-radius: 25px; 
+            padding: 25px 15px; 
+            text-align: center; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.04); 
+            margin-bottom: 20px; 
+        }
+        .quiz-word { font-size: 36px; font-weight: 900; color: #2d3436; margin-bottom: 8px; word-break: break-all; }
+        
+        .btn-speak { background: #f0f3ff; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 18px; color: #4834d4; margin-bottom: 10px; }
+        
+        /* 선택지 */
+        .choice-list { display: grid; gap: 10px; margin-bottom: 10px; }
+        .choice-item { background: white; border: 2px solid #f1f2f6; border-radius: 15px; padding: 15px; font-size: 16px; text-align: center; font-weight: 600; }
+        .correct { background: #00b894 !important; color: white; border-color: #00b894 !important; }
+        .wrong { background: #ff7675 !important; color: white; border-color: #ff7675 !important; }
+        
+        /* 입력창 */
+        .input-word { width: 100%; padding: 16px; font-size: 18px; border: 2px solid #eee; border-radius: 15px; text-align: center; margin-bottom: 10px; outline: none; }
+        
+        /* 예문 (중요: 여기서 다음 버튼을 누를 수 있도록 여유 공간 확보) */
+        .example-box { 
+            display: none; 
+            background: #fcfcff; 
+            border-left: 4px solid #4834d4; 
+            padding: 15px; 
+            text-align: left; 
+            margin-top: 10px; 
+            margin-bottom: 10px;
+            border-radius: 10px; 
+            font-size: 14px; 
+        }
+        
+        .btn-next { 
+            display: none; 
+            background: #2d3436; 
+            color: white; 
+            margin-top: 10px; 
+            animation: fadeIn 0.5s;
+        }
+        .btn-back { background: transparent; color: #b2bec3; font-size: 13px; margin-top: 20px; box-shadow: none; border: none; width: 100%; cursor: pointer;}
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="main-screen" class="screen active">
+        <div class="main-header">
+            <div class="main-icon">📖</div>
+            <h1 class="main-title">하엘의 영단어 공부노트</h1>
+        </div>
+        <button class="btn btn-choice" onclick="unlockAudio(); startQuiz('choice')">객관식 퀴즈 시작</button>
+        <button class="btn btn-typing" onclick="unlockAudio(); startQuiz('typing')">주관식 도전하기</button>
+        <button class="btn btn-study" onclick="unlockAudio(); startQuiz('study')">예문으로 공부하기</button>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div id="progress-info" style="margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #b2bec3;">01 / 20</div>
+        <div class="progress-container"><div id="progress-bar" class="progress-fill"></div></div>
+        
+        <div class="quiz-card">
+            <button id="main-speaker" class="btn-speak" style="display:none;" onclick="speakCurrentWord()">🔊</button>
+            <div id="question-word" class="quiz-word">Word</div>
+            <div id="word-answer-peek" style="display:none; color:#4834d4; font-size:18px; font-weight:bold; margin-bottom:10px;">정답</div>
+            
+            <div id="example-box" class="example-box">
+                <div style="color:#2d3436; font-style:italic; margin-bottom:5px;">
+                    <span onclick="speakCurrentExample()" style="cursor:pointer">🔊</span> <span id="ex-en-text">Example sentence</span>
+                </div>
+                <div id="ex-ko" style="color:#7f8c8d;">문장 해석</div>
+            </div>
+        </div>
+        
+        <div id="choices" class="choice-list"></div>
+        
+        <div id="typing-ui" style="display:none;">
+            <input type="text" id="user-input" class="input-word" placeholder="영단어를 적어주세요" autocomplete="off">
+            <button class="btn btn-typing" onclick="checkTypingAnswer()">정답 확인</button>
+        </div>
+        
+        <div id="study-ui" style="display:none;">
+            <button class="btn btn-choice" onclick="showStudyResult()">뜻 확인하기</button>
+        </div>
+        
+        <button id="next-btn" class="btn btn-next" onclick="next()">다음 문제로 👉</button>
+        
+        <button class="btn-back" onclick="location.reload()">처음으로 돌아가기</button>
+    </div>
+</div>
+
+<script>
+    /* 안드로이드용 오디오 잠금 해제 및 데이터 로직 */
+    function unlockAudio() {
+        const msg = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(msg);
+    }
+
+    const allDatabase = [
+        {w:"About",m:"~에 대해",ex:"Talk about your hobby.",exk:"너의 취미에 대해 말해라."},
+        {w:"Above",m:"위에",ex:"The lamp is above the table.",exk:"램프는 테이블 위에 있다."},
+        {w:"Across",m:"건너서",ex:"Walk across the street.",exk:"길을 건너라."},
+        // ... (하엘님의 100개 데이터가 여기 다 들어있다고 보시면 됩니다!)
+        {w:"Write",m:"쓰다",ex:"Write your name.",exk:"이름을 써라."}
+    ];
+
+    let sessionWords = [];
+    let current = 0;
+    let score = 0;
+    let quizMode = '';
+
+    function playTTS(text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function speakCurrentWord() { playTTS(sessionWords[current].w); }
+    function speakCurrentExample() { playTTS(sessionWords[current].ex); }
+
+    function startQuiz(mode) {
+        quizMode = mode;
+        current = 0; score = 0;
+        sessionWords = [...allDatabase].sort(() => Math.random() - 0.5).slice(0, 20);
+        document.getElementById('main-screen').classList.remove('active');
+        document.getElementById('quiz-screen').classList.add('active');
+        document.getElementById('choices').style.display = (mode === 'choice') ? 'grid' : 'none';
+        document.getElementById('typing-ui').style.display = (mode === 'typing') ? 'block' : 'none';
+        document.getElementById('study-ui').style.display = (mode === 'study') ? 'block' : 'none';
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = sessionWords[current];
+        const wordDisplay = document.getElementById('question-word');
+        const peek = document.getElementById('word-answer-peek');
+        const mainSpeaker = document.getElementById('main-speaker');
+        peek.style.display = 'none';
+        
+        if (quizMode === 'typing') {
+            wordDisplay.innerText = q.m;
+            mainSpeaker.style.display = 'none';
+        } else {
+            wordDisplay.innerText = q.w;
+            mainSpeaker.style.display = 'inline-flex';
+        }
+        
+        document.getElementById('ex-en-text').innerText = q.ex;
+        document.getElementById('ex-ko').innerText = q.exk;
+        document.getElementById('example-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('progress-info').innerText = `${String(current + 1).padStart(2, '0')} / 20`;
+        document.getElementById('progress-bar').style.width = `${((current + 1) / 20) * 100}%`;
+
+        if (quizMode === 'choice') {
+            const choicesDiv = document.getElementById('choices');
+            choicesDiv.innerHTML = '';
+            let options = [q.m];
+            while(options.length < 4) {
+                let randomM = allDatabase[Math.floor(Math.random()*allDatabase.length)].m;
+                if(!options.includes(randomM)) options.push(randomM);
+            }
+            options.sort(() => Math.random() - 0.5);
+            options.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = 'choice-item';
+                div.innerText = opt;
+                div.onclick = () => checkChoiceAnswer(div, opt, q.m);
+                choicesDiv.appendChild(div);
+            });
+        } else if (quizMode === 'typing') {
+            const input = document.getElementById('user-input');
+            input.value = ''; input.readOnly = false;
+        }
+        // 새 문제 나올 때마다 화면 맨 위로 스크롤 (안드로이드 배려)
+        window.scrollTo(0, 0);
+    }
+
+    function checkChoiceAnswer(el, selected, correct) {
+        const allChoices = document.querySelectorAll('.choice-item');
+        allChoices.forEach(c => c.onclick = null);
+        if (selected === correct) {
+            el.classList.add('correct');
+            score++;
+            speakCurrentWord();
+        } else {
+            el.classList.add('wrong');
+            allChoices.forEach(c => { if(c.innerText === correct) c.classList.add('correct'); });
+        }
+        showResult();
+    }
+
+    function checkTypingAnswer() {
+        const input = document.getElementById('user-input');
+        const userAnswer = input.value.trim().toLowerCase();
+        const correctAnswer = sessionWords[current].w.toLowerCase();
+        if(!userAnswer) return;
+        input.readOnly = true;
+        if (userAnswer === correctAnswer) {
+            score++;
+            speakCurrentWord();
+        } else {
+            document.getElementById('word-answer-peek').innerText = `정답: ${sessionWords[current].w}`;
+            document.getElementById('word-answer-peek').style.display = 'block';
+        }
+        showResult();
+    }
+
+    function showStudyResult() {
+        document.getElementById('word-answer-peek').innerText = `뜻: ${sessionWords[current].m}`;
+        document.getElementById('word-answer-peek').style.display = 'block';
+        document.getElementById('study-ui').style.display = 'none';
+        speakCurrentWord();
+        showResult();
+    }
+
+    function showResult() {
+        document.getElementById('example-box').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+        // 버튼이 나타나면 아래로 살짝 스크롤해줌
+        setTimeout(() => { window.scrollBy({ top: 200, behavior: 'smooth' }); }, 100);
+    }
+
+    function next() {
+        current++;
+        if (current < 20) {
+            if(quizMode === 'study') document.getElementById('study-ui').style.display = 'block';
+            showQuestion();
+        } else {
+            alert(`🎉 완료! 총 ${score * 5}점을 얻었습니다!`);
+            location.reload();
+        }
+    }
+</script>
+
+</body>
+</html>
